@@ -66,7 +66,7 @@ router.post("/login", validator, async (req, res) => {
 
         // give token
         console.log(user.rows[0].ID);
-        const access = tokenGenerator(user.rows[0].ID);
+        const access = tokenGenerator(user.rows[0]);
 
         res.json({ access })
 
@@ -74,8 +74,36 @@ router.post("/login", validator, async (req, res) => {
         console.error(error.message)
         res.status(500).send("Server Error")
     }
-
-
 });
 
+
+
+router.get("/get-profiles/:clinicID", validator, async (req, res) => {
+
+    try {
+        // reconstruct req.body
+        const { clinicID } = req.params;
+
+        //check if exist
+        const users = await pool.query(`SELECT "ID", "EMAIL", "PASSWORD", "USERNAME", "NAME", "ROLE", "CLINIC_ACCOUNT", "ADDRESS", "CONTACT_NO", "AGE", "SEX", "PROFILE_PICTURE"
+        FROM public.employees_account
+        where "CLINIC_ACCOUNT" = $1;`, [clinicID])
+
+
+        res.json(users.rows)
+
+    } catch (error) {
+        console.error(error.message)
+        res.status(500).send("Server Error")
+    }
+});
+
+router.get("/is-verify", authorization, async (req, res) => {
+    try {
+        res.json(true);
+    } catch (error) {
+        console.error(error.message)
+        res.status(500).send("Server Error")
+    }
+});
 module.exports = router;

@@ -33,7 +33,7 @@ router.post("/register", validator, authorization, async (req, res) => {
             [ROLE, NAME, encryptedPassword, CLINIC_ACCOUNT, ADDRESS, CONTACT_NO, AGE, SEX, PROFILE_PICTURE, email, username]);
 
         // generate token
-        const access = tokenGenerator(newUser.rows[0].ID);
+        const access = tokenGenerator(newUser.rows[0]);
 
         res.json({ access })
 
