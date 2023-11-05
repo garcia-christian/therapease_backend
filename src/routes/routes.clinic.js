@@ -85,7 +85,7 @@ router.get("/get-profiles/:clinicID", validator, async (req, res) => {
         const { clinicID } = req.params;
 
         //check if exist
-        const users = await pool.query(`SELECT "ID", "EMAIL", "PASSWORD", "USERNAME", "NAME", "ROLE", "CLINIC_ACCOUNT", "ADDRESS", "CONTACT_NO", "AGE", "SEX", "PROFILE_PICTURE"
+        const users = await pool.query(`SELECT *
         FROM public.employees_account
         where "CLINIC_ACCOUNT" = $1;`, [clinicID])
 
