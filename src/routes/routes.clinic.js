@@ -11,7 +11,7 @@ router.post("/register", validator, async (req, res) => {
     try {
 
         // decon
-        const { username, email, password, profile } = req.body;
+        const { username, email, password } = req.body;
 
         // check
         const user = await pool.query(`select * from public.clinic_account where "EMAIL" = $1`, [email]);
@@ -28,9 +28,9 @@ router.post("/register", validator, async (req, res) => {
 
         // Insert new user
         const newUser = await pool.query(`INSERT INTO public.clinic_account(
-            "EMAIL", "USERNAME", "PASSWORD", "CLINIC_PROFILE")
+            "EMAIL", "USERNAME", "PASSWORD",)
         VALUES ( $1, $2, $3, $4) returning *`,
-            [email, username, encryptedPassword, profile]);
+            [email, username, encryptedPassword]);
 
         // generate token
         const access = tokenGenerator(newUser.rows[0].ID);
@@ -76,7 +76,20 @@ router.post("/login", validator, async (req, res) => {
     }
 });
 
+router.get("/get-clinics", validator, async (req, res) => {
 
+    try {
+        const users = await pool.query(`SELECT *
+        FROM public.clinic_account;`)
+
+
+        res.json(users.rows)
+
+    } catch (error) {
+        console.error(error.message)
+        res.status(500).send("Server Error")
+    }
+});
 
 router.get("/get-profiles/:clinicID", validator, async (req, res) => {
 
