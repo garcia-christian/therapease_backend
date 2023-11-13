@@ -39,25 +39,37 @@ router.post("/book-appointment", async (req, res) => {
 });
 
 
+function convertToDateTime(timeString) {
+    // Split the time string into hours, minutes, and seconds
+    var timeComponents = timeString.split(':');
+
+    // Create a new Date object with the current date and set the time components
+    var dateTime = new Date();
+    dateTime.setHours(parseInt(timeComponents[0], 10));
+    dateTime.setMinutes(parseInt(timeComponents[1], 10));
+    dateTime.setSeconds(parseInt(timeComponents[2], 10));
+
+    return dateTime;
+}
+
 router.post("/add-timeslot", async (req, res) => {
     try {
         const { clinic, date, start_time, end_time } = req.body;
 
-        const Start = new Date(start_time);
-        const End = new Date(end_time);
-
-
+        const Start = convertToDateTime(start_time);
+        const End = convertToDateTime(end_time);
+        console.log(Start);
+        console.log(End);
         if (!(End >= Start)) {
-            res.send("End time cannot be earlier than Start time");
-            return;
+            return res.status(400).send('Invalid Time Range')
         }
 
         const booking = await pool.query(`INSERT INTO public.timeslot(
              "CLINIC", "DATE", "START_TIME", "END_TIME")
-            VALUES ($1, $2, $3, $4);`,
-            [clinic, date, Start.getTime(), End.getTime()])
-
-        res.send('created')
+            VALUES ($1, $2, $3, $4) RETURNING *;`,
+            [clinic, date, start_time, end_time])
+        console.log(booking.rows);
+        return res.send(booking.rows[0]);
 
     } catch (error) {
         console.error(error.message)
@@ -65,14 +77,43 @@ router.post("/add-timeslot", async (req, res) => {
     }
 });
 
-router.get("/get-timeslots/:apdate/:clinic", async (req, res) => {
+router.delete("/remove-timeslot/:id", async (req, res) => {
     try {
-        const { apdate } = req.params;
+        const { id } = req.params;
+
+        const booking = await pool.query(`DELETE FROM public.timeslot
+        WHERE "ID" = $1;`, [id])
+        return res.send('deleted');
+
+    } catch (error) {
+        console.error(error.message)
+        res.status(500).send(error.message)
+    }
+});
+router.get("/get-timeslots/:clinic", async (req, res) => {
+
+    try {
         const { clinic } = req.params;
-        const user = await pool.query(`   SELECT "ID", "CLINIC", "DATE", "START_TIME", "END_TIME"
-        FROM public.timeslot
-            WHERE "DATE" = $1 AND "CLINIC" = $2`, [apdate, clinic])
-        res.send(user.rows)
+        const dates = await pool.query(`
+            SELECT TO_CHAR("DATE"::date, 'YYYY-MM-DD') AS day
+            FROM public.timeslot
+            WHERE "CLINIC" = $1
+            GROUP BY day
+            ORDER BY day;`, [clinic])
+        let timeSlots = []
+        await Promise.all(dates.rows.map(async (value) => {
+            let time = await pool.query(`
+                SELECT "ID", "DATE","START_TIME", "END_TIME"
+                FROM public.timeslot
+                WHERE "DATE"::date = $1`, [value.day]);
+
+            timeSlots.push({
+                DATE: value.day,
+                TIMESLOT: time.rows
+            });
+        }));
+        console.log(timeSlots);
+        res.send(timeSlots)
 
     } catch (error) {
         console.error(error.message)
