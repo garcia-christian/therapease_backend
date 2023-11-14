@@ -119,4 +119,84 @@ router.get("/is-verify", authorization, async (req, res) => {
         res.status(500).send("Server Error")
     }
 });
+
+//////////////
+router.get("/get-user/:ID", validator, async (req, res) => {
+
+    try {
+
+        const { ID } = req.params;
+
+
+        const user = await pool.query(`select * from public.clinic_account where "ID" = $1`, [ID],);
+
+        res.json(user.rows);
+
+    } catch (error) {
+        console.error(error.message)
+        res.status(500).send("Server Error")
+    }
+});
+
+
+router.get("/get-service/:ID", validator, async (req, res) => {
+
+    try {
+        const { ID } = req.params;
+        const user = await pool.query(`SELECT s."ID", s."DESC"
+        FROM public.clinic_services e
+        LEFT OUTER JOIN public.services_offered s ON e."SERVICES" = s."ID"
+        WHERE e."CLINIC" = $1
+        `, [ID]);
+
+        res.json(user.rows);
+
+    } catch (error) {
+        console.error(error.message)
+        res.status(500).send("Server Error")
+    }
+});
+
+router.patch("/save-services/:ID", validator, async (req, res) => {
+    try {
+        const { ID } = req.params;
+        const { servList } = req.body;
+
+        const user = await pool.query(`DELETE FROM public.clinic_services
+        WHERE "CLINIC" = $1;`, [ID]);
+        console.log(servList);
+
+
+        servList.map(async (value, index) => {
+            await pool.query(`INSERT INTO public.clinic_services(
+               "CLINIC", "SERVICES")
+                VALUES ($1, $2);`, [ID, value.ID]);
+        });
+
+        res.json().status(200);
+
+    } catch (error) {
+        console.error(error.message)
+        res.status(500).send("Server Error")
+    }
+});
+
+router.patch("/save-about/:ID", validator, async (req, res) => {
+    try {
+        const { ID } = req.params;
+        const { about } = req.body;
+
+        const user = await pool.query(`UPDATE public.clinic_account
+        SET  "BIO"=$2
+        WHERE "ID"=$1;`, [ID, about]);
+
+
+        res.json().status(200);
+
+    } catch (error) {
+        console.error(error.message)
+        res.status(500).send("Server Error")
+    }
+});
+
 module.exports = router;
