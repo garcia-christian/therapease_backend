@@ -5,7 +5,7 @@ const authorization = require("../middleware/authorization")
 router.post("/book-appointment", async (req, res) => {
     try {
         // reconstruct req.body
-        const { timeslot, clinic, parent } = req.body;
+        const { timeslot, clinic, parent, therapist, status, note } = req.body;
         //Booking status 1 = pending/unaproved, 2 = approved, 3 = rejected, 4 = done;
 
         const chkTimeslot = await pool.query(`SELECT * FROM public.timeslot
@@ -26,15 +26,64 @@ router.post("/book-appointment", async (req, res) => {
         }
 
         const appointment = await pool.query(`INSERT INTO public.booking(
-            "PARENT", "DATEBOOKED", "TIMESLOT", "CLINIC", "THERAPIST", "STATUS")
-            VALUES ($1, CURRENT_TIMESTAMP, $2, $3, $4, $5);`,
-            [parent, timeslot, clinic, 0, 1])
+            "PARENT", "DATEBOOKED", "TIMESLOT", "CLINIC", "THERAPIST", "STATUS","NOTE")
+            VALUES ($1, CURRENT_TIMESTAMP, $2, $3, $4, $5, $6);`,
+            [parent, timeslot, clinic, therapist, status, note])
 
         res.send('booked');
 
     } catch (error) {
         console.error(error.message)
         res.status(500).send("Server Error")
+    }
+});
+
+router.get("/get-appointment/:clinic/:status", async (req, res) => {
+    try {
+        const { clinic } = req.params;
+        const { status } = req.params;
+        const appointment = await pool.query(`
+            SELECT * FROM public.booking
+            WHERE "STATUS" = $2 and "THERAPIST" = $1`, [clinic, status]);
+
+        const resList = await Promise.all(appointment.rows.map(async (appointmentRow) => {
+            const parent = await pool.query(`
+                SELECT *
+                FROM public.parent_account
+                WHERE "ID" = $1`, [appointmentRow.PARENT]);
+
+            const timeSlot = await pool.query(`
+                SELECT *
+                FROM public.timeslot
+                WHERE "ID" = $1`, [appointmentRow.TIMESLOT]);
+
+            const therapist = await pool.query(`
+                SELECT *
+                FROM public.employees_account
+                WHERE "ID" = $1`, [appointmentRow.THERAPIST]);
+
+            const clinicAcc = await pool.query(`
+                SELECT *
+                FROM public.clinic_account
+                WHERE "ID" = $1`, [appointmentRow.CLINIC]);
+
+            const responseData = {
+                "ID": appointmentRow.ID,
+                "DATEBOOKED": appointmentRow.DATEBOOKED,
+                "PARENT": parent.rows[0], // Assuming there is only one parent for each appointment
+                "TIMESLOT": timeSlot.rows[0], // Assuming there is only one timeslot for each appointment
+                "CLINIC": clinicAcc.rows[0], // Assuming there is only one clinic account for each appointment
+                "THERAPIST": therapist.rows[0], // Assuming there is only one therapist for each appointment
+                "STATUS": appointmentRow.STATUS,
+                "NOTE": appointmentRow.NOTE,
+            };
+            return responseData;
+        }));
+
+        return res.send(resList);
+    } catch (error) {
+        console.error(error.message);
+        res.status(500).send(error.message);
     }
 });
 
@@ -103,7 +152,7 @@ router.get("/get-timeslots/:clinic", async (req, res) => {
         let timeSlots = []
         await Promise.all(dates.rows.map(async (value) => {
             let time = await pool.query(`
-                SELECT "ID", "DATE","START_TIME", "END_TIME"
+                SELECT "ID","CLINIC","DATE","START_TIME", "END_TIME"
                 FROM public.timeslot
                 WHERE "DATE"::date = $1`, [value.day]);
 
@@ -112,7 +161,7 @@ router.get("/get-timeslots/:clinic", async (req, res) => {
                 TIMESLOT: time.rows
             });
         }));
-        console.log(timeSlots);
+
         res.send(timeSlots)
 
     } catch (error) {
@@ -120,6 +169,5 @@ router.get("/get-timeslots/:clinic", async (req, res) => {
         res.status(500).send(error.message)
     }
 });
-
 
 module.exports = router;

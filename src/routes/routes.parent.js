@@ -62,10 +62,7 @@ router.post("/login", validator, async (req, res) => {
         if (!validPassword) {
             return res.status(401).json("Invalid Password");
         }
-
-        // give token
-        console.log(user.rows[0].ID);
-        const access = tokenGenerator(user.rows[0].ID);
+        const access = tokenGenerator(user.rows[0]);
 
         res.json({ access })
 
@@ -75,5 +72,20 @@ router.post("/login", validator, async (req, res) => {
     }
 });
 
+router.get("/get-user/:ID", validator, async (req, res) => {
+
+    try {
+
+        const { ID } = req.params;
+
+        const user = await pool.query(`select * from public.parent_account where "ID" = $1`, [ID],);
+
+        res.json(user.rows);
+
+    } catch (error) {
+        console.error(error.message)
+        res.status(500).send("Server Error")
+    }
+});
 
 module.exports = router;
