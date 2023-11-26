@@ -42,9 +42,29 @@ router.get("/get-appointment/:clinic/:status", async (req, res) => {
     try {
         const { clinic } = req.params;
         const { status } = req.params;
-        const appointment = await pool.query(`
-            SELECT * FROM public.booking
-            WHERE "STATUS" = $2 and "THERAPIST" = $1`, [clinic, status]);
+
+
+
+        let appointment = [];
+
+        if (status == 3) {
+            appointment = await pool.query(`
+                SELECT b.*, t."DATE"
+                FROM public.booking b
+                LEFT OUTER JOIN public.timeslot t on b."TIMESLOT" = t."ID"
+                WHERE "STATUS" = $2 and "THERAPIST" = $1 `,
+                [clinic, status]);
+        } else {
+            appointment = await pool.query(`
+                SELECT b.*, t."DATE"
+                FROM public.booking b
+                LEFT OUTER JOIN public.timeslot t on b."TIMESLOT" = t."ID"
+                WHERE "STATUS" = $2 and "THERAPIST" = $1`,
+                [clinic, status]);
+        }
+
+
+
 
         const resList = await Promise.all(appointment.rows.map(async (appointmentRow) => {
             const parent = await pool.query(`
@@ -139,6 +159,24 @@ router.delete("/remove-timeslot/:id", async (req, res) => {
         res.status(500).send(error.message)
     }
 });
+
+
+router.put("/accept-booking/:id/:therapist", async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { therapist } = req.params;
+
+        const booking = await pool.query(`UPDATE public.booking
+        SET "THERAPIST"= $2, "STATUS" = 2 
+        WHERE "ID"= $1;`, [id, therapist]);
+        return res.send('Update');
+
+    } catch (error) {
+        console.error(error.message)
+        res.status(500).send(error.message)
+    }
+});
+
 router.get("/get-timeslots/:clinic", async (req, res) => {
 
     try {
