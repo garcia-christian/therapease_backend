@@ -42,9 +42,6 @@ router.get("/get-appointment/:clinic/:status", async (req, res) => {
     try {
         const { clinic } = req.params;
         const { status } = req.params;
-
-
-
         let appointment = [];
 
         if (status == 3) {
@@ -54,6 +51,13 @@ router.get("/get-appointment/:clinic/:status", async (req, res) => {
                 LEFT OUTER JOIN public.timeslot t on b."TIMESLOT" = t."ID"
                 WHERE "STATUS" = $2 and "THERAPIST" = $1 `,
                 [clinic, status]);
+        } else if (status == 1) {
+            appointment = await pool.query(`
+            SELECT b.*, t."DATE"
+            FROM public.booking b
+            LEFT OUTER JOIN public.timeslot t on b."TIMESLOT" = t."ID"
+            WHERE "STATUS" = $1 and "THERAPIST" = 0`,
+                [status]);
         } else {
             appointment = await pool.query(`
                 SELECT b.*, t."DATE"
