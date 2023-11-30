@@ -208,4 +208,63 @@ router.get("/get-timeslots/:clinic", async (req, res) => {
     }
 });
 
+router.get("/get-parent-appointments/:ID", async (req, res) => {
+
+    try {
+        const { ID } = req.params;
+
+        const timeSlotID = await pool.query(`
+            SELECT  "ID", "TIMESLOT"
+            FROM public.booking
+            WHERE "PARENT" = $1`, [ID])
+
+
+        let timeSlots = []
+        await Promise.all(timeSlotID.rows.map(async (timeValue) => {
+            let dates = await pool.query(`
+                SELECT TO_CHAR("DATE"::date, 'YYYY-MM-DD') AS day
+                FROM public.timeslot
+                WHERE "ID" = $1
+                GROUP BY day
+                ORDER BY day;`, [timeValue.TIMESLOT])
+            console.log(dates.rows[0]);
+
+            let time = await pool.query(`
+            SELECT "ID","CLINIC","DATE","START_TIME", "END_TIME"
+            FROM public.timeslot
+            WHERE "ID" = $1`, [timeValue.TIMESLOT]);
+
+            let clinic = [];
+            if (time.rows.length > 0) {
+                clinic = await pool.query(`
+            SELECT *
+            FROM public.clinic_account
+            WHERE "ID" = $1`, [time.rows[0].CLINIC]);
+            }
+
+            // Update the BOOKING and CLINIC properties if there is clinic data
+            if (time.rows.length > 0 && clinic.rows.length > 0) {
+                time.rows[0].BOOKING = timeValue.ID;
+                time.rows[0].CLINIC = clinic.rows[0];
+
+                timeSlots.push({
+                    DATE: dates.rows[0].day,
+                    TIMESLOT: time.rows,
+                });
+            }
+
+        }));
+
+
+
+
+
+        res.send(timeSlots)
+
+    } catch (error) {
+        console.error(error.message)
+        res.status(500).send(error.message)
+    }
+});
+
 module.exports = router;

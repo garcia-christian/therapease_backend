@@ -91,6 +91,8 @@ router.get("/get-clinics", validator, async (req, res) => {
     }
 });
 
+
+
 router.get("/get-profiles/:clinicID", validator, async (req, res) => {
 
     try {
@@ -120,7 +122,6 @@ router.get("/is-verify", authorization, async (req, res) => {
     }
 });
 
-//////////////
 router.get("/get-user/:ID", validator, async (req, res) => {
 
     try {
