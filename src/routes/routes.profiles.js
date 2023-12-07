@@ -27,9 +27,9 @@ router.post("/register", validator, authorization, async (req, res) => {
 
         // Insert new user
         const newUser = await pool.query(`INSERT INTO public.employees_account(
-             "ROLE", "NAME", "PASSWORD", "CLINIC_ACCOUNT", "ADDRESS", "CONTACT_NO", "AGE", "SEX", "PROFILE_PICTURE","EMAIL","USERNAME")
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) returning *`,
-            [ROLE, NAME, encryptedPassword, CLINIC_ACCOUNT, ADDRESS, CONTACT_NO, AGE, SEX, PROFILE_PICTURE, email, username]);
+             "ROLE", "NAME", "PASSWORD", "CLINIC_ACCOUNT", "ADDRESS", "CONTACT_NO", "AGE", "SEX", "PROFILE_PICTURE","EMAIL","USERNAME", "STATUS", "ABOUT")
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) returning *`,
+            [ROLE, NAME, encryptedPassword, CLINIC_ACCOUNT, ADDRESS, CONTACT_NO, AGE, SEX, PROFILE_PICTURE, email, username, 1, " "]);
 
         // generate token
         const access = tokenGenerator(newUser.rows[0]);
@@ -42,7 +42,7 @@ router.post("/register", validator, authorization, async (req, res) => {
     }
 });
 
-router.post("/register-solo", validator, authorization, async (req, res) => {
+router.post("/register-solo", validator, async (req, res) => {
 
     try {
 
@@ -64,9 +64,9 @@ router.post("/register-solo", validator, authorization, async (req, res) => {
 
         // Insert new user
         const newUser = await pool.query(`INSERT INTO public.employees_account(
-             "ROLE", "NAME", "PASSWORD", "CLINIC_ACCOUNT", "ADDRESS", "CONTACT_NO", "AGE", "SEX", "PROFILE_PICTURE","EMAIL","USERNAME")
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) returning *`,
-            [ROLE, NAME, encryptedPassword, 0, ADDRESS, CONTACT_NO, AGE, SEX, PROFILE_PICTURE, email, username]);
+             "ROLE", "NAME", "PASSWORD", "CLINIC_ACCOUNT", "ADDRESS", "CONTACT_NO", "AGE", "SEX", "PROFILE_PICTURE","EMAIL","USERNAME","STATUS", "ABOUT")
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) returning *`,
+            [ROLE, NAME, encryptedPassword, 0, ADDRESS, CONTACT_NO, AGE, SEX, PROFILE_PICTURE, email, username, 0, " "]);
 
         // generate token
         const access = tokenGenerator(newUser.rows[0]);
@@ -123,6 +123,9 @@ router.post("/login-solo", validator, async (req, res) => {
         if (user.rows.length === 0) {
             return res.status(401).json("User Not found");
         }
+        if (user.rows[0].CLINIC_ACCOUNT != 0) {
+            return res.status(401).json("User is not a solo practitioner");
+        }
 
         // check if password is correct
         const validPassword = await bcrypt.compare(password, user.rows[0].PASSWORD);
@@ -153,6 +156,19 @@ router.get("/get-user/:ID", validator, async (req, res) => {
 
 
         const user = await pool.query(`select * from public.employees_account where "ID" = $1`, [ID],);
+
+        res.json(user.rows);
+
+    } catch (error) {
+        console.error(error.message)
+        res.status(500).send("Server Error")
+    }
+});
+
+router.get("/get-freelance", validator, async (req, res) => {
+
+    try {
+        const user = await pool.query(`select * from public.employees_account where "CLINIC_ACCOUNT" = 0`);
 
         res.json(user.rows);
 
