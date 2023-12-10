@@ -212,6 +212,37 @@ router.get("/get-timeslots/:clinic", async (req, res) => {
     }
 });
 
+router.get("/get-solo-timeslots/:id", async (req, res) => {
+
+    try {
+        const { id } = req.params;
+        const dates = await pool.query(`
+            SELECT TO_CHAR("DATE"::date, 'YYYY-MM-DD') AS day
+            FROM public.timeslot
+            WHERE "CLINIC" = 0
+            GROUP BY day
+            ORDER BY day;`)
+        let timeSlots = []
+        await Promise.all(dates.rows.map(async (value) => {
+            let time = await pool.query(`
+                SELECT "ID","CLINIC","DATE","START_TIME", "END_TIME"
+                FROM public.timeslot
+                WHERE "DATE"::date = $1`, [value.day]);
+
+            timeSlots.push({
+                DATE: value.day,
+                TIMESLOT: time.rows
+            });
+        }));
+
+        res.send(timeSlots)
+
+    } catch (error) {
+        console.error(error.message)
+        res.status(500).send(error.message)
+    }
+});
+
 router.get("/get-parent-appointments/:ID", async (req, res) => {
 
     try {
