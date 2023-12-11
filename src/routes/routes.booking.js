@@ -7,7 +7,7 @@ router.post("/book-appointment", async (req, res) => {
         // reconstruct req.body
         const { timeslot, clinic, parent, therapist, status, note } = req.body;
         //Booking status 1 = pending/unaproved, 2 = approved, 3 = rejected, 4 = done;
-        console.log(timeslot);
+
         const chkTimeslot = await pool.query(`SELECT * FROM public.timeslot
             WHERE "CLINIC" = $1 AND "ID" = $2`,
             [clinic, timeslot]);
@@ -29,7 +29,6 @@ router.post("/book-appointment", async (req, res) => {
             VALUES ($1, CURRENT_TIMESTAMP, $2, $3, $4, $5, $6) RETURNING *;`,
             [parent, timeslot, clinic, therapist, status, note])
 
-        console.log(appointment.rows[0]);
         res.send(appointment.rows[0]);
 
     } catch (error) {
