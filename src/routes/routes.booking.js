@@ -7,13 +7,13 @@ router.post("/book-appointment", async (req, res) => {
         // reconstruct req.body
         const { timeslot, clinic, parent, therapist, status, note } = req.body;
         //Booking status 1 = pending/unaproved, 2 = approved, 3 = rejected, 4 = done;
-
+        console.log(timeslot);
         const chkTimeslot = await pool.query(`SELECT * FROM public.timeslot
             WHERE "CLINIC" = $1 AND "ID" = $2`,
             [clinic, timeslot]);
 
         if (!chkTimeslot.rows != 0) {
-            return res.send('Timeslot Does not Exist')
+            return res.status(404).send('Timeslot Does not Exist');
         }
 
         const booking = await pool.query(`
@@ -22,15 +22,15 @@ router.post("/book-appointment", async (req, res) => {
             [clinic, timeslot])
 
         if (booking.rows != 0) {
-            return res.send('Unavailable')
+            return res.status(409).send('Unavailable');
         }
-
         const appointment = await pool.query(`INSERT INTO public.booking(
             "PARENT", "DATEBOOKED", "TIMESLOT", "CLINIC", "THERAPIST", "STATUS","NOTE")
-            VALUES ($1, CURRENT_TIMESTAMP, $2, $3, $4, $5, $6);`,
+            VALUES ($1, CURRENT_TIMESTAMP, $2, $3, $4, $5, $6) RETURNING *;`,
             [parent, timeslot, clinic, therapist, status, note])
 
-        res.send('booked');
+        console.log(appointment.rows[0]);
+        res.send(appointment.rows[0]);
 
     } catch (error) {
         console.error(error.message)
