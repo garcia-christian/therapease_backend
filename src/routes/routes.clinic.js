@@ -207,7 +207,19 @@ router.get("/get-materials/", validator, async (req, res) => {
     try {
         const materials = await pool.query(`SELECT * FROM public.clinic_materials`);
 
-        res.json(materials.rows);
+
+        const resList = await Promise.all(materials.rows.map(async (material) => {
+            const files = await pool.query(`
+                SELECT *
+                FROM public.clinic_files
+                WHERE "MATERIAL" = $1`, [material.ID]);
+
+            material.FILES = files.rows;
+
+            return material;
+        }));
+
+        res.json(resList);
 
     } catch (error) {
         console.error(error.message)
@@ -217,13 +229,30 @@ router.get("/get-materials/", validator, async (req, res) => {
 
 router.post("/add-materials", async (req, res) => {
     try {
-        const { title, desc, type, file } = req.body;
+        const { title, desc, thumbnail, clinic } = req.body;
 
         const booking = await pool.query(`INSERT INTO public.clinic_materials(
-             "TITLE", "DESC", "TYPE", "FILE")
-            VALUES ($1, $2, $3, $4) RETURNING *;`,
-            [title, desc, type, file])
-        console.log(booking.rows);
+            "TITLE", "DESC", "THUMBNAIL", "CLINIC")
+            VALUES ($1, $2, $3, $4) RETURNING *`,
+            [title, desc, thumbnail, clinic])
+
+        return res.send(booking.rows);
+
+    } catch (error) {
+        console.error(error.message)
+        res.status(500).send(error.message)
+    }
+});
+
+router.post("/add-attatchments", async (req, res) => {
+    try {
+        const { material, type, file } = req.body;
+
+        const booking = await pool.query(`INSERT INTO public.clinic_files(
+            "MATERIAL", "TYPE", "FILE")
+            VALUES ($1, $2, $3) RETURNING *`,
+            [material, type, file])
+
         return res.send(booking.rows[0]);
 
     } catch (error) {
