@@ -202,10 +202,13 @@ router.patch("/save-about/:ID", validator, async (req, res) => {
 });
 
 
-router.get("/get-materials/", validator, async (req, res) => {
+router.get("/get-materials/:ID", validator, async (req, res) => {
 
     try {
-        const materials = await pool.query(`SELECT * FROM public.clinic_materials`);
+        const { ID } = req.params;
+        const materials = await pool.query(`
+        SELECT * FROM public.clinic_materials
+        WHERE "CLINIC" = $1`, [ID]);
 
 
         const resList = await Promise.all(materials.rows.map(async (material) => {
@@ -247,6 +250,23 @@ router.post("/add-materials", async (req, res) => {
 router.post("/add-attatchments", async (req, res) => {
     try {
         const { material, type, file } = req.body;
+
+        const booking = await pool.query(`INSERT INTO public.clinic_files(
+            "MATERIAL", "TYPE", "FILE")
+            VALUES ($1, $2, $3) RETURNING *`,
+            [material, type, file])
+
+        return res.send(booking.rows[0]);
+
+    } catch (error) {
+        console.error(error.message)
+        res.status(500).send(error.message)
+    }
+});
+
+router.get("/get-attatchments/:type/:material/:parent", async (req, res) => {
+    try {
+        const { type, material, parent } = req.params;
 
         const booking = await pool.query(`INSERT INTO public.clinic_files(
             "MATERIAL", "TYPE", "FILE")
