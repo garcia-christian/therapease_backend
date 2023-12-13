@@ -271,7 +271,7 @@ router.get("/get-attatchments/:type/:material/:parent", async (req, res) => {
         const booking = await pool.query(`INSERT INTO public.clinic_files(
             "MATERIAL", "TYPE", "FILE")
             VALUES ($1, $2, $3) RETURNING *`,
-            [material, type, file])
+            [material, type, parent])
 
         return res.send(booking.rows[0]);
 
