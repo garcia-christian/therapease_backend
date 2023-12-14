@@ -263,6 +263,22 @@ router.post("/add-attatchments", async (req, res) => {
         res.status(500).send(error.message)
     }
 });
+router.put("/approve-clinic/:ID", async (req, res) => {
+    try {
+        const { ID } = req.params;
+
+        const clinic = await pool.query(`UPDATE public.clinic_account
+        SET "STATUS"= $2
+        WHERE "ID" = $1 RETURNING *`,
+            [ID, 1])
+
+        return res.send(clinic.rows[0]);
+
+    } catch (error) {
+        console.error(error.message)
+        res.status(500).send(error.message)
+    }
+});
 
 router.get("/get-attatchments/:type", async (req, res) => {
     try {
