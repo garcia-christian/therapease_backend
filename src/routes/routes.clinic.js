@@ -264,16 +264,17 @@ router.post("/add-attatchments", async (req, res) => {
     }
 });
 
-router.get("/get-attatchments/:type/:material/:parent", async (req, res) => {
+router.get("/get-attatchments/:type", async (req, res) => {
     try {
-        const { type, material, parent } = req.params;
+        const { type } = req.params;
 
-        const booking = await pool.query(`INSERT INTO public.clinic_files(
-            "MATERIAL", "TYPE", "FILE")
-            VALUES ($1, $2, $3) RETURNING *`,
-            [material, type, parent])
+        const booking = await pool.query(`SELECT f."ID", "MATERIAL", "TYPE", "FILE", m."TITLE"
+        FROM public.clinic_files f
+        LEFT OUTER JOIN public.clinic_materials m ON m."ID" = f."MATERIAL"
+        WHERE f."TYPE" = $1
+        `, [type])
 
-        return res.send(booking.rows[0]);
+        return res.send(booking.rows);
 
     } catch (error) {
         console.error(error.message)
