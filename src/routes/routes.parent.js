@@ -87,5 +87,20 @@ router.get("/get-user/:ID", validator, async (req, res) => {
         res.status(500).send("Server Error")
     }
 });
+router.post("/files/", validator, async (req, res) => {
+    try {
+
+        const { parent, file } = req.body;
+
+        const user = await pool.query(`INSERT INTO public.parent_files(
+            "PARENT", "FILE")
+            VALUES ($1, $2);`, [parent, file]);
+        res.json().status(200);
+
+    } catch (error) {
+        console.error(error.message)
+        res.status(500).send("Server Error")
+    }
+});
 
 module.exports = router;

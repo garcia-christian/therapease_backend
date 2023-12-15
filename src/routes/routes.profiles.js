@@ -211,9 +211,6 @@ router.get("/get-service/:ID", validator, async (req, res) => {
 });
 
 router.patch("/save-services/:ID", validator, async (req, res) => {
-
-
-
     try {
         const { ID } = req.params;
         const { servList } = req.body;
@@ -247,6 +244,21 @@ router.patch("/save-about/:ID", validator, async (req, res) => {
         WHERE "ID"=$1;`, [ID, about]);
 
 
+        res.json().status(200);
+
+    } catch (error) {
+        console.error(error.message)
+        res.status(500).send("Server Error")
+    }
+});
+router.post("/files/", validator, async (req, res) => {
+    try {
+
+        const { therapist, file } = req.body;
+
+        const user = await pool.query(`INSERT INTO public.therapist_files(
+            "THERAPIST", "FILE")
+            VALUES ($1, $2);`, [therapist, file]);
         res.json().status(200);
 
     } catch (error) {

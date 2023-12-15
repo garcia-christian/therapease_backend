@@ -11,7 +11,7 @@ router.post("/register", validator, async (req, res) => {
     try {
 
         // decon
-        const { username, email, password, name } = req.body;
+        const { username, email, password, name, picture } = req.body;
 
         // check
         const user = await pool.query(`select * from public.clinic_account where "EMAIL" = $1`, [email]);
@@ -30,10 +30,10 @@ router.post("/register", validator, async (req, res) => {
         const newUser = await pool.query(`INSERT INTO public.clinic_account(
             "EMAIL", "USERNAME", "PASSWORD", "NAME", "BIO", "PICTURE")
             VALUES ($1, $2, $3, $4, $5, $6) returning *`,
-            [email, username, encryptedPassword, name, ' ', ' ']);
+            [email, username, encryptedPassword, name, ' ', picture]);
 
         // generate token
-        const access = tokenGenerator(newUser.rows[0].ID);
+        const access = tokenGenerator(newUser.rows[0]);
 
         res.json({ access })
 
@@ -202,6 +202,33 @@ router.patch("/save-about/:ID", validator, async (req, res) => {
 });
 
 
+router.get("/get-materials", validator, async (req, res) => {
+
+    try {
+
+        const materials = await pool.query(`
+        SELECT * FROM public.clinic_materials`);
+
+
+        const resList = await Promise.all(materials.rows.map(async (material) => {
+            const files = await pool.query(`
+                SELECT *
+                FROM public.clinic_files
+                WHERE "MATERIAL" = $1`, [material.ID]);
+
+            material.FILES = files.rows;
+
+            return material;
+        }));
+
+        res.json(resList);
+
+    } catch (error) {
+        console.error(error.message)
+        res.status(500).send("Server Error")
+    }
+});
+
 router.get("/get-materials/:ID", validator, async (req, res) => {
 
     try {
@@ -295,6 +322,23 @@ router.get("/get-attatchments/:type", async (req, res) => {
     } catch (error) {
         console.error(error.message)
         res.status(500).send(error.message)
+    }
+});
+
+
+router.post("/files/", validator, async (req, res) => {
+    try {
+
+        const { clinic, file } = req.body;
+
+        const user = await pool.query(`INSERT INTO public.clinic_documents(
+            "CLINIC", "LINK")
+            VALUES ($1, $2);`, [clinic, file]);
+        res.json().status(200);
+
+    } catch (error) {
+        console.error(error.message)
+        res.status(500).send("Server Error")
     }
 });
 
