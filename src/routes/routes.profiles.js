@@ -45,30 +45,25 @@ router.post("/register", validator, authorization, async (req, res) => {
 router.post("/register-solo", validator, async (req, res) => {
 
     try {
-
-        // decon
         const { ROLE, NAME, email, password, ADDRESS, CONTACT_NO, AGE, SEX, PROFILE_PICTURE, username } = req.body;
 
-        // check
         const user = await pool.query(`select * from public.employees_account where "EMAIL" = $1`, [email]);
 
         if (user.rows.length !== 0) {
             return res.status(401).json("User already exist")
         }
 
-        //encrypt password
         const round = 10;
         const salt = await bcrypt.genSalt(round);
 
         const encryptedPassword = await bcrypt.hash(password, salt);
 
-        // Insert new user
+
         const newUser = await pool.query(`INSERT INTO public.employees_account(
              "ROLE", "NAME", "PASSWORD", "CLINIC_ACCOUNT", "ADDRESS", "CONTACT_NO", "AGE", "SEX", "PROFILE_PICTURE","EMAIL","USERNAME","STATUS", "ABOUT")
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) returning *`,
             [ROLE, NAME, encryptedPassword, 0, ADDRESS, CONTACT_NO, AGE, SEX, PROFILE_PICTURE, email, username, 0, " "]);
 
-        // generate token
         const access = tokenGenerator(newUser.rows[0]);
 
         res.json({ access })
