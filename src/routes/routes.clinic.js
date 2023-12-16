@@ -28,9 +28,9 @@ router.post("/register", validator, async (req, res) => {
 
         // Insert new user
         const newUser = await pool.query(`INSERT INTO public.clinic_account(
-            "EMAIL", "USERNAME", "PASSWORD", "NAME", "BIO", "PICTURE")
-            VALUES ($1, $2, $3, $4, $5, $6) returning *`,
-            [email, username, encryptedPassword, name, ' ', picture]);
+            "EMAIL", "USERNAME", "PASSWORD", "NAME", "BIO", "PICTURE", "STATUS")
+            VALUES ($1, $2, $3, $4, $5, $6, $7) returning *`,
+            [email, username, encryptedPassword, name, ' ', picture, 1]);
 
         // generate token
         const access = tokenGenerator(newUser.rows[0]);
