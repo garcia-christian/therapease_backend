@@ -48,8 +48,8 @@ router.get("/get-appointment/:clinic/:status", async (req, res) => {
                 SELECT b.*, t."DATE"
                 FROM public.booking b
                 LEFT OUTER JOIN public.timeslot t on b."TIMESLOT" = t."ID"
-                WHERE "STATUS" = $2 and "THERAPIST" = $1 and t."DATE" = CURRENT_DATE  `,
-                [clinic, status]);
+                WHERE "STATUS" = 2 and "THERAPIST" = $1 and t."DATE" = CURRENT_DATE  `,
+                [clinic]);
         } else if (status == 1) {
             appointment = await pool.query(`
             SELECT b.*, t."DATE"
@@ -62,7 +62,7 @@ router.get("/get-appointment/:clinic/:status", async (req, res) => {
                 SELECT b.*, t."DATE"
                 FROM public.booking b
                 LEFT OUTER JOIN public.timeslot t on b."TIMESLOT" = t."ID"
-                WHERE "STATUS" = $2 and "THERAPIST" = $1  and t."DATE" >= CURRENT_DATE `,
+                WHERE "STATUS" = $2 and "THERAPIST" = $1  and t."DATE" > CURRENT_DATE `,
                 [clinic, status]);
         }
 
@@ -287,10 +287,6 @@ router.get("/get-parent-appointments/:ID", async (req, res) => {
             }
 
         }));
-
-
-
-
 
         res.send(timeSlots)
 
