@@ -48,7 +48,7 @@ router.get("/get-appointment/:clinic/:status", async (req, res) => {
                 SELECT b.*, t."DATE"
                 FROM public.booking b
                 LEFT OUTER JOIN public.timeslot t on b."TIMESLOT" = t."ID"
-                WHERE "STATUS" = $2 and "THERAPIST" = $1 `,
+                WHERE "STATUS" = $2 and "THERAPIST" = $1 and t."DATE" = CURRENT_DATE  `,
                 [clinic, status]);
         } else if (status == 1) {
             appointment = await pool.query(`
@@ -62,12 +62,9 @@ router.get("/get-appointment/:clinic/:status", async (req, res) => {
                 SELECT b.*, t."DATE"
                 FROM public.booking b
                 LEFT OUTER JOIN public.timeslot t on b."TIMESLOT" = t."ID"
-                WHERE "STATUS" = $2 and "THERAPIST" = $1`,
+                WHERE "STATUS" = $2 and "THERAPIST" = $1  and t."DATE" >= CURRENT_DATE `,
                 [clinic, status]);
         }
-
-
-
 
         const resList = await Promise.all(appointment.rows.map(async (appointmentRow) => {
             const parent = await pool.query(`
@@ -187,7 +184,7 @@ router.get("/get-timeslots/:clinic", async (req, res) => {
         const dates = await pool.query(`
             SELECT TO_CHAR("DATE"::date, 'YYYY-MM-DD') AS day
             FROM public.timeslot
-            WHERE "CLINIC" = $1
+            WHERE "CLINIC" = $1 and "DATE" >= CURRENT_DATE
             GROUP BY day
             ORDER BY day;`, [clinic])
         let timeSlots = []
@@ -248,9 +245,11 @@ router.get("/get-parent-appointments/:ID", async (req, res) => {
         const { ID } = req.params;
 
         const timeSlotID = await pool.query(`
-            SELECT  "ID", "TIMESLOT"
-            FROM public.booking
-            WHERE "PARENT" = $1`, [ID])
+        SELECT  b."ID", "TIMESLOT"
+        FROM public.booking b
+        LEFT OUTER JOIN public.timeslot t ON t."ID" = b."TIMESLOT" 
+        WHERE "PARENT" = $1 and t."DATE" >= CURRENT_DATE
+        `, [ID])
 
 
         let timeSlots = []
@@ -258,7 +257,7 @@ router.get("/get-parent-appointments/:ID", async (req, res) => {
             let dates = await pool.query(`
                 SELECT TO_CHAR("DATE"::date, 'YYYY-MM-DD') AS day
                 FROM public.timeslot
-                WHERE "ID" = $1
+                WHERE "ID" = $1 
                 GROUP BY day
                 ORDER BY day;`, [timeValue.TIMESLOT])
             console.log(dates.rows[0]);
