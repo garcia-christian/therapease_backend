@@ -342,4 +342,57 @@ router.post("/files/", validator, async (req, res) => {
     }
 });
 
+router.post("/add-reviews", validator, async (req, res) => {
+    try {
+
+        const { PARENT, CLINIC, REVIEW, RATING, } = req.body;
+
+        const booking = await pool.query(`INSERT INTO public.reviews(
+            "PARENT", "CLINIC", "REVIEW", "RATING", "DATE")
+            VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP);
+        `, [PARENT, CLINIC, REVIEW, RATING])
+
+        return res.send(booking.rows);
+
+    } catch (error) {
+        console.error(error.message)
+        res.status(500).send("Server Error")
+    }
+});
+
+router.get("/get-reviews/:ID", async (req, res) => {
+    try {
+        const { ID } = req.params;
+
+        const reviews = await pool.query(`SELECT *
+        FROM public.reviews
+        WHERE "CLINIC" = $1
+        `, [ID])
+
+
+        const resList = await Promise.all(reviews.rows.map(async (review) => {
+            const clinic = await pool.query(`
+                SELECT *
+                FROM public.clinic_account
+                WHERE "ID" = $1`, [review.CLINIC]);
+            const parent = await pool.query(`
+                SELECT *
+                FROM public.parent_account
+                WHERE "ID" = $1`, [review.PARENT]);
+
+            review.CLINIC = clinic.rows[0];
+            review.PARENT = parent.rows[0];
+            return review;
+        }));
+
+        return res.json(resList);
+
+    } catch (error) {
+        console.error(error.message)
+        res.status(500).send(error.message)
+    }
+});
+
+
+
 module.exports = router;
