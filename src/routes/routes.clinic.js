@@ -82,8 +82,6 @@ router.get("/get-clinics", validator, async (req, res) => {
         const users = await pool.query(`SELECT *
         FROM public.clinic_account
         WHERE "STATUS" = 1`)
-
-
         res.json(users.rows)
 
     } catch (error) {
@@ -92,7 +90,22 @@ router.get("/get-clinics", validator, async (req, res) => {
     }
 });
 
+router.get("/get-clinics/category/:ID", validator, async (req, res) => {
 
+    try {
+        const { ID } = req.params;
+        const users = await pool.query(`SELECT a.*
+        FROM public.clinic_services s
+        LEFT OUTER JOIN public.clinic_account a on a."ID" = s."CLINIC"
+        where s."SERVICES" = $1`, [ID])
+
+        res.json(users.rows)
+
+    } catch (error) {
+        console.error(error.message)
+        res.status(500).send("Server Error")
+    }
+});
 
 router.get("/get-profiles/:clinicID", validator, async (req, res) => {
 
