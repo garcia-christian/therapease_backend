@@ -103,4 +103,60 @@ router.post("/files/", validator, async (req, res) => {
     }
 });
 
+router.get("/parent-clinic/:ID", validator, async (req, res) => {
+
+    try {
+
+        const { ID } = req.params;
+
+        const user = await pool.query(`SELECT DISTINCT p.*
+        FROM public.booking b
+        LEFT OUTER JOIN public.parent_account p on p."ID" = b."PARENT"
+        where b."CLINIC" = $1`, [ID],);
+
+        res.json(user.rows);
+
+    } catch (error) {
+        console.error(error.message)
+        res.status(500).send("Server Error")
+    }
+});
+
+router.post("/add-journal", validator, async (req, res) => {
+    try {
+        const { parent, journal, picture, checklist, checked, clinic } = req.body;
+
+        const user = await pool.query(`INSERT INTO public.parent_journal(
+            "PARENT", "JOURNAL", "PICTURE", "CHECKLIST", "CHECKED", "CLINIC")
+            VALUES ($1, $2, $3, $4, $5, $6);`, [parent, journal, picture, checklist, false, clinic]);
+        res.json().status(200);
+
+    } catch (error) {
+        console.error(error.message)
+        res.status(500).send("Server Error")
+    }
+});
+
+router.get("/get-journal/:ID", validator, async (req, res) => {
+    try {
+        const { ID } = req.params;
+        const user = await pool.query(`SELECT * FROM public.parent_journal where "PARENT" = $1`, [ID]);
+        res.json(user.rows).status(200);
+    } catch (error) {
+        console.error(error.message)
+        res.status(500).send("Server Error")
+    }
+});
+
+router.get("/get-journal/:ID/:CLINIC", validator, async (req, res) => {
+    try {
+        const { ID, CLINIC } = req.params;
+        const user = await pool.query(`SELECT * FROM public.parent_journal where "PARENT" = $1 AND "CLINIC" = $2`, [ID, CLINIC]);
+        res.json(user.rows).status(200);
+    } catch (error) {
+        console.error(error.message)
+        res.status(500).send("Server Error")
+    }
+});
+
 module.exports = router;
