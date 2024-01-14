@@ -122,6 +122,22 @@ router.get("/parent-clinic/:ID", validator, async (req, res) => {
     }
 });
 
+
+
+router.put("/edit-journal", validator, async (req, res) => {
+    try {
+        const { journal, checked, id } = req.body;
+
+        const user = await pool.query(`UPDATE public.parent_journal
+        SET "JOURNAL"=$1, "CHECKED"=$2
+        WHERE "ID"=$3`, [journal, checked, id]);
+        res.json().status(200);
+
+    } catch (error) {
+        console.error(error.message)
+        res.status(500).send("Server Error")
+    }
+});
 router.post("/add-journal", validator, async (req, res) => {
     try {
         const { parent, journal, picture, checklist, checked, clinic } = req.body;
